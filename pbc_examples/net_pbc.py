@@ -99,6 +99,13 @@ class PhysicsInformedNN_pbc():
         self.loss_style = loss_style
 
         self.iter = 0
+        self.history = {
+            'loss': [],
+            'loss_u': [],
+            'loss_b': [],
+            'loss_f': [],
+            'grad_norm': []
+        }
 
     def net_u(self, x, t):
         """The standard DNN that takes (x,t) --> u."""
@@ -190,6 +197,12 @@ class PhysicsInformedNN_pbc():
             param_norm = p.grad.detach().data.norm(2)
             grad_norm += param_norm.item() ** 2
         grad_norm = grad_norm ** 0.5
+
+        self.history['loss'].append(loss.item())
+        self.history['loss_u'].append(loss_u.item())
+        self.history['loss_b'].append(loss_b.item())
+        self.history['loss_f'].append(loss_f.item())
+        self.history['grad_norm'].append(grad_norm)
 
         if verbose:
             if self.iter % 100 == 0:

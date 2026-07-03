@@ -19,9 +19,9 @@ parser = argparse.ArgumentParser(description='Characterizing/Rethinking PINNs')
 
 parser.add_argument('--system', type=str, default='convection', help='System to study.')
 parser.add_argument('--seed', type=int, default=0, help='Random initialization.')
-parser.add_argument('--N_f', type=int, default=100, help='Number of collocation points to sample.')
+parser.add_argument('--N_f', type=int, default=2000, help='Number of collocation points to sample.')
 parser.add_argument('--optimizer_name', type=str, default='LBFGS', help='Optimizer of choice.')
-parser.add_argument('--lr', type=float, default=1.0, help='Learning rate.')
+parser.add_argument('--lr', type=float, default=0.1, help='Learning rate.')
 parser.add_argument('--L', type=float, default=1.0, help='Multiplier on loss f.')
 
 parser.add_argument('--xgrid', type=int, default=256, help='Number of points in the xgrid.')
@@ -39,6 +39,8 @@ parser.add_argument('--loss_style', default='mean', help='Loss for the network (
 
 parser.add_argument('--visualize', default=False, help='Visualize the solution.')
 parser.add_argument('--save_model', default=False, help='Save the model for analysis later.')
+parser.add_argument('--plot_loss', default=False, help='Plot training loss from saved history without retraining.')
+parser.add_argument('--loss_history_path', default=None, help='Path to a saved loss history pickle file.')
 
 args = parser.parse_args()
 
@@ -130,6 +132,19 @@ model = PhysicsInformedNN_pbc(args.system, X_u_train, u_train, X_f_train, bc_lb,
 model.train()
 
 u_pred = model.predict(X_star)
+
+# Save loss history after training when requested.
+loss_history_path = f"heatmap_results/{args.system}/loss_history_{args.system}_{args.seed}_{args.N_f}_{args.lr}_{args.L}_{args.u0_str}.pkl"
+if args.plot_loss and args.loss_history_path is None:
+    save_loss_history(model.history, loss_history_path)
+elif args.loss_history_path is not None:
+    if args.plot_loss:
+        plot_loss(args.loss_history_path, f"heatmap_results/{args.system}", f"loss_plot_{args.system}.pdf", title=f"Loss history: {args.system}")
+        print(f"Plot only mode: loss plot saved to heatmap_results/{args.system}/loss_plot_{args.system}.pdf")
+        exit(0)
+
+if args.plot_loss and args.loss_history_path is None:
+    plot_loss(model.history, f"heatmap_results/{args.system}", f"loss_plot_{args.system}.pdf", title=f"Loss history: {args.system}")
 
 error_u_relative = np.linalg.norm(u_star-u_pred, 2)/np.linalg.norm(u_star, 2)
 error_u_abs = np.mean(np.abs(u_star - u_pred))
